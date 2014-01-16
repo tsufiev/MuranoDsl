@@ -1,0 +1,22 @@
+Namespaces:
+    =: com.mirantis.murano.services.windows.activeDirectory
+    std: com.mirantis.murano
+    sys: com.mirantis.murano.system
+    win: com.mirantis.murano.services.windows
+
+Name: Controller
+
+Properties:
+  host:
+    Type: win:Host
+    Mandatory: true
+
+Workflow:
+  std:Deploy:
+    Access: Public
+    Arguments:
+      - environment:
+          Type: std:Environment
+    Body:
+      - std:Deploy $.host:
+          environment: $environment

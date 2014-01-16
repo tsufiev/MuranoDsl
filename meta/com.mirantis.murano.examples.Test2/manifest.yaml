@@ -1,0 +1,22 @@
+Namespaces:
+    =: com.mirantis.murano.examples
+    std: com.mirantis.murano
+Name: Test2
+
+Properties:
+  p2:
+    Type: Integer
+    Default: 11
+
+Workflow:
+  std:method1:
+      Arguments:
+        - t:
+            Type: Integer
+        - z:
+            Type: Integer
+            Default: 33
+      Body:
+        - debugPrint: 999999
+        - debugPrint: $t
+        - debugPrint: [$t, $.p2]

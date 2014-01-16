@@ -1,0 +1,41 @@
+Namespaces:
+    =: com.mirantis.murano.services
+    std: com.mirantis.murano
+    sys: com.mirantis.murano.system
+
+Name: Instance
+
+Properties:
+  name:
+    Type: String
+    Mandatory: true
+  flavor:
+    Type: String
+    Mandatory: true
+  image:
+    Type: String
+    Mandatory: true
+  heat:
+    Type: sys:Heat
+    Access: System
+
+Workflow:
+  std:Deploy:
+    Access: Public
+    Arguments:
+      - environment:
+          Type: std:Environment
+    Body:
+      - $template:
+          Resources:
+            $.name:
+              Type: 'AWS::EC2::Instance'
+              Properties:
+                InstanceType: $.flavor
+                ImageId: $.image
+      - UpdateStack $.heat:
+          template: $template
+          environment: $.environment
+
+
+

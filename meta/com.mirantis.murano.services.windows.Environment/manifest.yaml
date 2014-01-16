@@ -1,0 +1,26 @@
+Namespaces:
+    =: com.mirantis.murano
+
+Name: Environment
+
+Properties:
+  name:
+    Type: String
+    Mandatory: true
+
+  applications:
+    Type: [Application]
+    Mandatory: true
+
+Workflow:
+  std:Deploy:
+    Access: Public
+    Body:
+      - std:Deploy $.applications:
+          environment: $
+
+
+
+
+
+

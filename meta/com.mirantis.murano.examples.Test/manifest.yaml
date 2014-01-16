@@ -1,0 +1,37 @@
+Namespaces:
+    =: com.mirantis.murano.examples
+    std: com.mirantis.murano
+Name: Test
+
+Inherits:
+  - TestParent
+
+Properties:
+  p1:
+    Type: Integer
+    Default: 99
+  QQ:
+    Type: Integer
+    Default: 0
+  pt:
+    Type: Test2
+
+Workflow:
+  std:method1:
+      Arguments:
+        - t:
+            Type: Integer
+        - z:
+            Type: Integer
+            Default: 33
+      Body:
+         - $uu:
+            x: 2 + 2 * 2
+         - $z = $uu.x * 2 + 1
+         - parent_method: $z
+           debugPrint: $.pt.p2
+
+#        - $.parentProperty = debugPrint: $.pt.p2
+#        - $.QQ = $q1 * 2
+#        - std:method1 $.pt:
+#            t: 1111

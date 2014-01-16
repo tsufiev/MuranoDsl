@@ -1,0 +1,39 @@
+Namespaces:
+    =: com.mirantis.murano.services.windows.activeDirectory
+    std: com.mirantis.murano
+    sys: com.mirantis.murano.system
+    win: com.mirantis.murano.services.windows
+
+Name: PrimaryController
+
+Inherits: Controller
+
+Properties:
+  host:
+    Type: win:DomainHost
+    Mandatory: true
+
+Workflow:
+  std:Deploy:
+    Access: Public
+    Arguments:
+      - environment:
+          Type: std:Environment
+      - domain:
+          Type: ActiveDirectory
+    Body:
+      - std:Deploy super():
+          environment: $environment
+
+      - JoinDomain $.host:
+          domain: $domain
+
+      - $template: $.resources.json('CreateSecondaryDC.template')
+      - $ep:
+          $template.with(domain => $domain.name).
+            with(recoveryPassword => $.recoveryPassword)
+
+      - SendCommand $.host:
+          executionPlan: $ep
+
+

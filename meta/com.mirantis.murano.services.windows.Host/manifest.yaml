@@ -1,0 +1,61 @@
+Namespaces:
+    =: com.mirantis.murano.services.windows
+    ad: com.mirantis.murano.services.activeDirectory
+    srv: com.mirantis.murano.services
+    std: com.mirantis.murano
+    sys: com.mirantis.murano.system
+
+Name: Host
+
+Inherits: srv:Instance
+
+Properties:
+  adminAccountName:
+    Type: String
+    Default: Administrator
+    Mandatory: true
+
+  adminPassword:
+    Type: String
+    Mandatory: true
+
+  resources:
+    Type: sys:Resources
+    Access: System
+
+Workflow:
+  std:Deploy:
+    Access: Public
+    Arguments:
+      - environment:
+          Type: std:Environment
+    Body:
+      - std:Deploy super():
+          environment: $environment
+      - $template: $.resources.json('SetPassword.template')
+      - $ep:
+          $template.with(adminAccountName => $.adminAccountName).
+            with(adminPassword => $.adminPassword)
+      - SendCommand:
+          executionPlan: $ep
+
+  JoinDomain:
+    Access: Public
+    Arguments:
+      - domain:
+          Type: ad:ActiveDirectory
+    Body:
+      - $template: $.resources.json('JoinDomain.template')
+      - $ep:
+          $template.with(domain => $.domain.name).
+            with(domainPassword => $.domain.host.adminPassword).
+            with(domainUser => $.domain.host.adminAccountName.ifVoid(Administrator))
+
+      - SendCommand:
+          executionPlan: $ep
+
+
+
+
+
+

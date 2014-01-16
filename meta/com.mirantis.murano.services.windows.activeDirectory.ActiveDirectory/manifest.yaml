@@ -1,0 +1,33 @@
+Namespaces:
+    =: com.mirantis.murano.services.windows.activeDirectory
+    std: com.mirantis.murano
+    sys: com.mirantis.murano.system
+    win: com.mirantis.murano.services.windows
+
+Name: ActiveDirectory
+
+Inherits: std:Application
+
+Properties:
+  name:
+    Type: String
+    Mandatory: true
+  primaryController:
+    Type: PrimaryController
+    Mandatory: true
+  secondaryController:
+    Type: [SecondaryController]
+
+Workflow:
+  std:Deploy:
+    Access: Public
+    Arguments:
+      - environment:
+          Type: std:Environment
+    Body:
+      - std:Deploy $.primaryController:
+          environment: $environment
+          domain: $
+      - std:Deploy $.secondaryControllers:
+          environment: $environment
+          domain: $

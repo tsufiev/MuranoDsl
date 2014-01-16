@@ -1,0 +1,38 @@
+Namespaces:
+    =: com.mirantis.murano.services.windows
+    srv: com.mirantis.murano.services
+    std: com.mirantis.murano
+    sys: com.mirantis.murano.system
+    ad: com.mirantis.murano.services.activeDirectory
+
+Name: DomainHost
+
+Inherits: Host
+
+Properties:
+  domain:
+    Type: ad:ActiveDirectory
+
+  resources:
+    Type: sys:Resources
+    Access: System
+
+Workflow:
+  std:Deploy:
+    Access: Public
+    Arguments:
+      - environment:
+          Type: std:Environment
+    Body:
+      - std:Deploy super():
+          environment: $environment
+      - JoinDomain:
+          domain: $.domain
+
+
+
+
+
+
+
+

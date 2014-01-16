@@ -1,0 +1,21 @@
+Namespaces:
+    =: com.mirantis.murano.examples
+    std: com.mirantis.murano
+Name: TestParent
+
+Properties:
+  parentProperty:
+    Type: Integer
+    Default: 666
+    Access: Public
+
+Workflow:
+  parent_method:
+      Arguments:
+        - t:
+            Type: Integer
+      Body:
+        - $.parentProperty = $t
+
+
+
