@@ -4,3 +4,4 @@ murano-common>=0.2.11
 babel
 iso8601
 yaql
+PyYAML
