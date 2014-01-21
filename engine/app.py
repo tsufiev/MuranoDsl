@@ -89,6 +89,9 @@ class EngineService(service.Service):
             '345': {'?': {'type': 'com.mirantis.murano.examples.Test2'},
                     'p2': 777}
         })
+        # objects = object_store.load({
+        #     '123': {'?': {'type': 'com.mirantis.murano.examples.Test'}},
+        # })
 
         obj = [t for t in objects if t.object_id == '123'][0]
         print obj
@@ -101,7 +104,7 @@ class EngineService(service.Service):
         object_class.add_method('debugPrint', debug_print)
 #        print test_class.name
         executor = MuranoDslExecutor(object_store)
-        obj.type.invoke('std:method1', executor, {'t': 17}, obj)
+        print "=", obj.type.invoke('method1', executor, obj, {'t': 17})
         print
         print '---------------------------------------------------------'
         print obj

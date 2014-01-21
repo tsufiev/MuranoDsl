@@ -9,7 +9,7 @@ Properties:
     Default: 11
 
 Workflow:
-  std:method1:
+  method1:
       Arguments:
         - t:
             Type: Integer
@@ -17,6 +17,7 @@ Workflow:
             Type: Integer
             Default: 33
       Body:
-        - debugPrint: 999999
-        - debugPrint: $t
-        - debugPrint: [$t, $.p2]
+        - Return: $t + $z + $.debugPrint(2) + $.p2
+#        - debugPrint: 999999
+#        - debugPrint: $t
+#        - debugPrint: [$t, $.p2]

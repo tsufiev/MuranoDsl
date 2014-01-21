@@ -8,11 +8,6 @@ Name: PrimaryController
 
 Inherits: Controller
 
-Properties:
-  host:
-    Type: win:DomainHost
-    Mandatory: true
-
 Workflow:
   std:Deploy:
     Access: Public

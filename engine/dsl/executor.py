@@ -1,165 +1,139 @@
 import inspect
-import types
-import eventlet
+import functools
 import yaql
-import yaql.expressions
-import helpers
+import yaql.exceptions
+import types
+import expressions
+import exceptions
+from yaql.context import Context, ContextAware, EvalArg
+from engine.dsl import helpers, MuranoObject
 
-from yaql.context import Context, EvalArg, ContextAware
-from murano_object import MuranoObject
-
-import dsl_instruction
 
 class MuranoDslExecutor(object):
     def __init__(self, object_store):
         self._object_store = object_store
         self._root_context = yaql.create_context(True)
 
-    def execute_instruction(self, instruction, this, context, root_class):
-        if context is None:
-            context = self._create_context(root_class)
+        @ContextAware()
+        def resolve(context, name, obj):
+            return self._resolve(context, name, obj)
 
-        if isinstance(instruction, dsl_instruction.ExpressionInstruction):
-            result = instruction.expression.evaluate(this, context)
-            self._set_result(result, instruction, this, context, root_class)
-        elif isinstance(instruction,
-                        dsl_instruction.InitializationInstruction):
-            result = helpers.evaluate_structure(
-                instruction.value, this, context)
-            self._set_result(result, instruction, this, context, root_class)
-        else:
-            target_object = this
-            if instruction.target_object is not None:
-                target_object = instruction.target_object.evaluate(
-                    this, context)
-                if not isinstance(target_object, MuranoObject):
-                    raise TypeError()
+        self._root_context.register_function(resolve, '#resolve')
 
-            if not target_object:
-                target_object = [None]
-            elif not isinstance(target_object, types.ListType):
-                target_object = [target_object]
+    def _resolve(self, context, name, obj):
+        @EvalArg('this', MuranoObject)
+        def invoke(this, *args):
+            try:
+                murano_class = helpers.evaluate('type()', context)
+                return self.invoke_method(name, obj, context,
+                                          murano_class, *args)
+            except exceptions.NoMethodFound:
+                raise yaql.exceptions.YaqlExecutionException()
+            except exceptions.AmbiguousMethodName:
+                raise yaql.exceptions.YaqlExecutionException()
 
-            method_types = root_class.find_method(instruction.method_name)
-            if not method_types:
-                raise LookupError(
-                    'Method %s not found' % instruction.method_name)
-            gp = eventlet.greenpool.GreenPile(
-                len(method_types) * len(target_object))
-            for murano_class in method_types:
-                for obj in target_object:
-                    target_class = root_class
-                    if target_object is not None:
-                        target_class = obj.type
+        if not isinstance(obj, MuranoObject):
+            return None
 
-                    gp.spawn(self._call, murano_class, instruction, obj,
-                             self._create_context(target_class, context))
-            result = [t for t in gp]
+        return invoke
 
-    def _call(self, murano_class, instruction, this, context):
-        method_name, parameters = \
-            instruction.method_name, instruction.parameters
-
-        method = murano_class.get_method(method_name)
-        argument_scheme = method.arguments_scheme
-        parameter_values = self._evaluate_parameters(argument_scheme,
-                                                     parameters, this,
-                                                     context)
-
-        self.execute_method(method, parameter_values, this)
-
-    def _set_result(self, result, instruction, this, context, murano_class):
-        # if this is not None:
-        #     murano_class = this.type
-        if not instruction.assign_to:
-            return
-        container = context
-        if instruction.assign_to_container is not None:
-            container = instruction.assign_to_container.evaluate(this, context)
-        if isinstance(container, Context):
-            container.set_data(result, instruction.assign_to)
-        elif isinstance(container, MuranoObject):
-            container.set_property(instruction.assign_to, result,
-                                   self._object_store, murano_class)
+    def to_yaql_args(self, args):
+        if not args:
+            return tuple()
+        elif isinstance(args, types.TupleType):
+            return args
+        elif isinstance(args, types.ListType):
+            return tuple(args)
+        elif isinstance(args, types.DictionaryType):
+            return tuple(args.items())
         else:
             raise ValueError()
 
-    def execute_method(self, method, parameters=None, this=None):
+    def invoke_method(self, name, this, context, murano_class, *args):
+        if context is None:
+            context = self._root_context
+        implementations = this.type.find_method(name)
+        delegates = []
+        for declaring_class, name in implementations:
+            method = declaring_class.get_method(name)
+            if not method:
+                continue
+            arguments_scheme = method.arguments_scheme
+            try:
+                params = self._evaluate_parameters(
+                    arguments_scheme, context, *args)
+                delegates.append(functools.partial(
+                    self._invoke_method_implementation,
+                    method, this, context, params))
+            except TypeError:
+                continue
+        if len(delegates) < 1:
+            raise exceptions.NoMethodFound(name)
+        elif len(delegates) > 1:
+            raise exceptions.AmbiguousMethodName(name)
+        else:
+            return delegates[0]()
+
+    def _invoke_method_implementation(self, method, this, context, params):
         body = method.body
         if not body:
             return None
 
-        local_context = self._create_context(method.murano_class)
-        if parameters:
-            for key, value in parameters.iteritems():
-                local_context.set_data(value, key)
-
-        parameter_values = self._evaluate_parameters(
-            method.arguments_scheme, parameters, this, local_context)
-
         if inspect.isfunction(body):
-            body(**parameter_values)
+            return body(**params)
+        elif isinstance(body, expressions.DslExpression):
+            return self.execute(body, method.murano_class, this,
+                                context, params)
         else:
-            for statement in body:
-                self.execute_statement(statement, method, this, local_context)
+            raise ValueError()
 
-    def _evaluate_parameters(self, arguments_scheme, parameters,
-                             this, context):
+    def _evaluate_parameters(self, arguments_scheme, context, *args):
+        arg_names = list(arguments_scheme.keys())
         parameter_values = {}
-        if parameters is None:
-            parameters = {}
-        elif isinstance(parameters, types.ListType):
-            parameters = dict([(i+1, v) for i, v in enumerate(parameters)])
-        elif not isinstance(parameters, types.DictionaryType):
-            parameters = {1: parameters}
-
-        for i, arg_name in enumerate(arguments_scheme):
-            arg_typespec = arguments_scheme[arg_name]
-
-            def eval_param(param):
-                obj = parameters[param]
-                if isinstance(obj, yaql.expressions.Expression):
-                    obj = obj.evaluate(this, context)
-                return arg_typespec.validate(obj, self._object_store)
-
-            if arg_name in parameters:
-                parameter_values[arg_name] = eval_param(arg_name)
-            elif unicode(i+1) in parameters:
-                parameter_values[arg_name] = eval_param(unicode(i+1))
-            elif i+1 in parameters:
-                parameter_values[arg_name] = eval_param(i+1)
-            elif arg_typespec.has_default:
-                parameter_values[arg_name] = arg_typespec.default
+        for i, arg in enumerate(args):
+            value = helpers.evaluate(arg, context)
+            if isinstance(value, types.TupleType) and len(value) == 2 and \
+                    isinstance(value[0], types.StringTypes):
+                name = value[0]
+                value = value[1]
+                if name not in arguments_scheme:
+                    raise TypeError()
             else:
-                raise ValueError()
+                if i >= len(arg_names):
+                    raise TypeError()
+                name = arg_names[i]
+
+            if callable(value):
+                value = value()
+            arg_spec = arguments_scheme[name]
+            parameter_values[name] = arg_spec.validate(
+                value, self._object_store)
+
+        for name, arg_spec in arguments_scheme.iteritems():
+            if name not in parameter_values:
+                if not arg_spec.has_default:
+                    raise TypeError()
+                parameter_values[name] = arg_spec.validate(
+                    arg_spec.default, self._object_store)
+
         return parameter_values
 
-    def execute_statement(self, statement, method, this, context):
-        if len(statement) == 1:
-            return self.execute_instruction(statement[0], this, context,
-                                            method.murano_class)
-        else:
-            gp = eventlet.greenpool.GreenPile(len(statement))
-            for instruction in statement:
-                gp.spawn(self.execute_instruction, instruction,
-                         this,
-                         self._create_context(method.murano_class, context),
-                         method.murano_class)
-            return [t for t in gp]
+    def execute(self, expression, murano_class, this, context=None,
+                parameters={}):
+        new_context = Context(parent_context=context or self._root_context)
+        new_context.set_data(this)
+        new_context.register_function(lambda: murano_class, 'type')
 
-    def _create_context(self, root_class, parent_context=None):
-        @ContextAware(context_parameter_name='self_context')
-        @EvalArg('self', arg_type=MuranoObject)
+        @EvalArg('this', arg_type=MuranoObject)
         @EvalArg('property_name', arg_type=str)
-        def obj_attribution(self_context, self, property_name):
-            return self.get_property(property_name, root_class)
+        def obj_attribution(this, property_name):
+            return this.get_property(property_name, murano_class)
 
-        if parent_context is not None:
-            return Context(parent_context=parent_context)
-        else:
-            context = Context(parent_context=self._root_context)
-            context.register_function(obj_attribution, 'operator_.')
-            return context
+        new_context.register_function(obj_attribution, '#operator_.')
 
+        for key, value in parameters.iteritems():
+            new_context.set_data(value, key)
+        return expression.execute(
+            new_context, self._object_store, murano_class)
 
 

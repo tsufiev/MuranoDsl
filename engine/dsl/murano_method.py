@@ -3,7 +3,7 @@ import inspect
 import types
 
 import typespec
-from dsl_instruction import MuranoDslInstruction
+import macros
 
 
 class MuranoMethod(object):
@@ -15,7 +15,6 @@ class MuranoMethod(object):
         if inspect.isfunction(payload):
             self._body = payload
             self._arguments_scheme = self._generate_arguments_scheme(payload)
-            self._static = True
         else:
             self._body = self._prepare_body(payload.get('Body', []))
             arguments_scheme = payload.get('Arguments')
@@ -32,11 +31,10 @@ class MuranoMethod(object):
                         if not isinstance(record, types.DictionaryType) \
                                 or len(record) > 1:
                                 raise ValueError()
-                        name = list(record.keys())[0]
+                        name = record.keys()[0]
                         self._arguments_scheme[name] = \
                             typespec.ArgumentSpec(record[name],
                                                       self._namespace_resolver)
-                self._static = payload.get('Static', False)
 
         self._murano_class = murano_class
 
@@ -56,10 +54,6 @@ class MuranoMethod(object):
     def body(self):
         return self._body
 
-    @property
-    def is_static(self):
-        return self._static
-
     def _generate_arguments_scheme(self, func):
         func_info = inspect.getargspec(func)
         data = [(name, {'Type': 'Object'}) for name in func_info.args]
@@ -72,21 +66,6 @@ class MuranoMethod(object):
             for name, declaration in data])
 
     def _prepare_body(self, body):
-        if not isinstance(body, types.ListType):
-            body = [body]
-
-        result = []
-        for item in body:
-            statement = []
-            if isinstance(item, types.DictionaryType):
-                for key, value in item.iteritems():
-                    statement.append(MuranoDslInstruction.parse({key: value}))
-            elif isinstance(item, types.StringType):
-                statement.append(MuranoDslInstruction.parse(item))
-            else:
-                raise ValueError()
-
-            result.append(statement)
-        return result
+        return macros.MethodBlock(body)
 
 

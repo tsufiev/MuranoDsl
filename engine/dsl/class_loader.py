@@ -2,48 +2,42 @@ import inspect
 import types
 import yaql
 from yaql.context import EvalArg
+from namespace_resolver import NamespaceResolver
+from murano_class import MuranoClass
 
+import typespec
 
 class MuranoClassLoader(object):
     def __init__(self):
-        self._system_classes = {}
+        self._loaded_types = {}
 
     def get_class(self, name):
-        pass
+        if name in self._loaded_types:
+            return self._loaded_types[name]
 
-    def create_context(self):
-        context = yaql.create_context(True)
-        for obj in self._system_classes.values():
-            self.__register_class(obj, context)
-        return context
+        data = self.load_definition(name)
 
-    def register_system_class(self, name, obj):
-        self._system_classes[name] = obj
+        namespace_resolver = NamespaceResolver(data.get('Namespaces', {}))
 
-    def get_system_class(self, name):
-        return self._system_classes.get(name)
+        class_parents = data.get('Inherits')
+        if class_parents:
+            if not isinstance(class_parents, types.ListType):
+                class_parents = [class_parents]
+            for i, parent in enumerate(class_parents):
+                class_parents[i] = self.get_class(
+                    namespace_resolver.resolve_name(parent))
+        type_obj = MuranoClass(self, namespace_resolver, name,
+                                   class_parents)
+        for property_name, property_spec in data.get('Properties',
+                {}).iteritems():
+            spec = typespec.PropertySpec(property_spec, namespace_resolver)
+            type_obj.add_property(property_name, spec)
 
-    def __register_method(self, method, context):
-        @EvalArg('this', arg_type=method.im_class)
-        def f(this, *args):
-            pargs = []
-            kwargs = {}
-            for arg in args:
-                value = arg()
-                if isinstance(value, types.TupleType) and len(value) == 2 and \
-                        isinstance(value[0], types.StringTypes):
-                    kwargs[value[0]] = value[1]
-                else:
-                    pargs.append(value)
+        for method_name, payload in data.get('Workflow', {}).iteritems():
+            method = type_obj.add_method(method_name, payload)
 
-            return method(self, *pargs, **kwargs)
-        context.register_function(f, method.__name__)
+        self._loaded_types[name] = type_obj
+        return type_obj
 
-    def __register_class(self, obj, context):
-        cls = type(obj)
-        for name in dir(cls):
-            if name.startswith('_'):
-                continue
-            method = getattr(cls, name)
-            if inspect.ismethod(method):
-                self.__register_method(method, context)
+    def load_definition(self, name):
+        raise NotImplementedError()
