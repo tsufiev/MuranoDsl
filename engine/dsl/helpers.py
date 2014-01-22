@@ -1,6 +1,7 @@
+import re
 import types
 import murano_object
-import yaql
+from yaql_expression import YaqlExpression
 import yaql.expressions
 
 def serialize(value):
@@ -16,30 +17,22 @@ def serialize(value):
     else:
         return value
 
-
-def parse_yaql_structure(structure):
-    if isinstance(structure, types.DictionaryType):
+def evaluate(value, context):
+    if isinstance(value, types.DictionaryType):
         result = {}
-        for d_key, d_value in structure.iteritems():
-            result[d_key] = parse_yaql_structure(d_value)
+        for d_key, d_value in value.iteritems():
+            result[d_key] = evaluate(d_value, context)
         return result
-    elif isinstance(structure, types.ListType):
-        return [parse_yaql_structure(t) for t in structure]
-    elif isinstance(structure, types.StringTypes):
-        return yaql.parse(structure)
+    elif isinstance(value, types.ListType):
+        return [evaluate(t, context) for t in value]
+    elif isinstance(value, YaqlExpression):
+        return value.evaluate(context)
+    elif isinstance(value, yaql.expressions.Expression):
+        return value.evaluate(context)
     else:
-        return structure
+        return value
 
 
-def evaluate_structure(structure, data, context):
-    if isinstance(structure, types.DictionaryType):
-        result = {}
-        for d_key, d_value in structure.iteritems():
-            result[d_key] = evaluate_structure(d_value, data, context)
-        return result
-    elif isinstance(structure, types.ListType):
-        return [evaluate_structure(t, data, context) for t in structure]
-    elif isinstance(structure, yaql.expressions.Expression):
-        return structure.evaluate(data, context)
-    else:
-        return structure
+def to_python_codestyle(name):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()

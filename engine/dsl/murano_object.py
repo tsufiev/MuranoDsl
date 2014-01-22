@@ -27,7 +27,7 @@ class MuranoObject(object):
         return self._type
 
     def get_property(self, item, caller_class=None):
-        print 'caller_class', caller_class.name
+        #print 'caller_class', caller_class.name
         if item in self._properties and \
                 self._is_accessible(item, caller_class):
             return self._properties[item]

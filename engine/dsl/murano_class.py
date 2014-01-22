@@ -1,5 +1,4 @@
 from murano_method import MuranoMethod
-from dsl_instruction import MuranoDslInstruction
 from murano_object import MuranoObject
 from typespec import PropertySpec
 
@@ -30,11 +29,10 @@ class MuranoClass(object):
         return self._methods
 
     def get_method(self, name):
-        return self._methods.get(
-            self._namespace_resolver.resolve_name(name, self.name))
+        return self._methods.get(name)
 
     def add_method(self, name, payload):
-        name = self._namespace_resolver.resolve_name(name, self.name)
+        #name = self._namespace_resolver.resolve_name(name, self.name)
         method = MuranoMethod(self._namespace_resolver,
                               self, name, payload)
         self._methods[name] = method
@@ -53,19 +51,18 @@ class MuranoClass(object):
         return self._properties[name]
 
     def find_method(self, name):
-        resolved_name = self._namespace_resolver.resolve_name(name, self.name)
-        if resolved_name in self._methods:
-            return [self]
+        #resolved_name = self._namespace_resolver.resolve_name(name, self.name)
+        if name in self._methods:
+            return [(self, name)]
         if not self._parents:
             return []
         return list(set(reduce(
             lambda x, y: x + y,
             [p.find_method(name) for p in self._parents])))
 
-    def invoke(self, name, executor, parameters=None, this=None):
-        return executor.execute_instruction(
-            MuranoDslInstruction.parse({name: parameters}, False),
-            this, None, self)
+    def invoke(self, name, executor, this, parameters):
+        args = executor.to_yaql_args(parameters)
+        return executor.invoke_method(name, this, None, self, *args)
 
     def is_compatible(self, obj):
         if not isinstance(obj, MuranoObject):

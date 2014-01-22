@@ -3,8 +3,8 @@ Namespaces:
     std: com.mirantis.murano
 Name: Test
 
-Inherits:
-  - TestParent
+#Inherits:
+#  - TestParent
 
 Properties:
   p1:
@@ -17,7 +17,7 @@ Properties:
     Type: Test2
 
 Workflow:
-  std:method1:
+  method1:
       Arguments:
         - t:
             Type: Integer
@@ -25,11 +25,14 @@ Workflow:
             Type: Integer
             Default: 33
       Body:
-         - $uu:
-            x: 2 + 2 * 2
-         - $z = $uu.x * 2 + 1
-         - parent_method: $z
-           debugPrint: $.pt.p2
+         - $.p1: $.pt.method1(1, 44)
+         - Return: $.p1
+#         - $b: $.pt.print()
+#         - $uu:
+#            x: 2 + 2 * 2
+#         - $z = $uu.x * 2 + 1
+#         - parent_method: $z
+#           debugPrint: $.pt.p2
 
 #        - $.parentProperty = debugPrint: $.pt.p2
 #        - $.QQ = $q1 * 2
