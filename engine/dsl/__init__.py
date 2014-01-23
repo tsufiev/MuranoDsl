@@ -8,3 +8,9 @@ import macros
 __all__ = ['MuranoClassLoader', 'MuranoClass', 'NamespaceResolver',
            'ObjectStore', 'MuranoObject']
 
+
+def classname(name):
+    def wrapper(cls):
+        cls._murano_class_name = name
+        return cls
+    return wrapper

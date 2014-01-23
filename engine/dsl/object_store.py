@@ -18,21 +18,20 @@ class ObjectStore(object):
             return self._parent_store.get(object_id)
         return None
 
-    def load(self, data):
+    def load(self, data, context):
         tmp_store = ObjectStore(self._class_loader, self)
         for key, value in data.iteritems():
             if '?' not in value or 'type' not in value['?']:
                 raise ValueError(key)
-            obj_type = value['?']['type']
+            system_key = value['?']
+            del value['?']
+            obj_type = system_key['type']
             class_obj = self._class_loader.get_class(obj_type)
             if not class_obj:
                 raise ValueError()
-            obj = MuranoObject(class_obj, key)
+            obj = class_obj.new(tmp_store, context=context, object_id=key)
             tmp_store._store[key] = obj
-            for property_name, property_value in value.iteritems():
-                if property_name.startswith('?'):
-                    continue
-                obj.set_property(property_name, property_value, tmp_store)
+            obj.initialize(**value)
         loaded_objects = tmp_store._store.values()
         self._store.update(tmp_store._store)
         return loaded_objects

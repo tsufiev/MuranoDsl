@@ -29,6 +29,10 @@ def evaluate(value, context):
         return value.evaluate(context)
     elif isinstance(value, yaql.expressions.Expression):
         return value.evaluate(context)
+    elif isinstance(value, types.TupleType):
+        return tuple(evaluate(list(value), context))
+    elif callable(value):
+        return value()
     else:
         return value
 
@@ -36,3 +40,7 @@ def evaluate(value, context):
 def to_python_codestyle(name):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+
+def get_executor(context):
+    return context.get_data('$?executor')

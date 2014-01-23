@@ -6,10 +6,11 @@ import helpers
 
 
 class MuranoObject(object):
-    def __init__(self, murano_class, object_id=None):
+    def __init__(self, murano_class, object_store, object_id=None):
         self._object_id = object_id or uuid.uuid4().hex
         self._type = murano_class
         self._properties = {}
+        self._object_store = object_store
         self._parents = {}
         for property_name in murano_class.properties:
             typespec = murano_class.get_property(property_name)
@@ -17,6 +18,12 @@ class MuranoObject(object):
         for parent in murano_class.parents:
             self._parents[parent.name] = MuranoObject(
                 parent, self._object_id)
+
+    def initialize(self, **kwargs):
+        for property_name, property_value in kwargs.iteritems():
+            self.set_property(property_name, property_value,
+                              self._object_store)
+
 
     @property
     def object_id(self):

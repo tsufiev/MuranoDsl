@@ -14,15 +14,16 @@
 # limitations under the License.
 
 import eventlet
-from engine.dsl import ObjectStore, MuranoObject
+from muranocommon.messaging import MqClient
+
+from engine import system
+from engine.dsl import ObjectStore
 from openstack.common import service
 from openstack.common import log as logging
-from muranocommon.messaging import MqClient, Message
 import config as cfg
-import yaml
-import dsl
 from dsl.executor import MuranoDslExecutor
 import class_loader
+
 
 log = logging.getLogger(__name__)
 
@@ -76,14 +77,17 @@ class EngineService(service.Service):
                 eventlet.sleep(reconnect_delay)
                 reconnect_delay = min(reconnect_delay * 2, 60)
 
-    def test(self):
-        def debug_print(x, y=5):
-            print "It works!", x, y
-            return 14
+    def debug_print(self, x, y=5):
+        print "It works!", x, y
+        return 14
 
-        cl = class_loader.ClassLoader("./meta")
-        object_store = ObjectStore(cl)
-        objects = object_store.load({
+    def test(self):
+
+        base_path = './meta'
+        cl = class_loader.ClassLoader(base_path)
+        system.register(cl, base_path)
+        executor = MuranoDslExecutor(cl)
+        objects = executor.load({
             '123': {'?': {'type': 'com.mirantis.murano.examples.Test'},
                      'p1': 88, 'pt': '345' },
             '345': {'?': {'type': 'com.mirantis.murano.examples.Test2'},
@@ -101,9 +105,8 @@ class EngineService(service.Service):
 
 
         object_class = cl.get_class("com.mirantis.murano.Object")
-        object_class.add_method('debugPrint', debug_print)
+        object_class.add_method('debugPrint', self.debug_print)
 #        print test_class.name
-        executor = MuranoDslExecutor(object_store)
         print "=", obj.type.invoke('method1', executor, obj, {'t': 17})
         print
         print '---------------------------------------------------------'

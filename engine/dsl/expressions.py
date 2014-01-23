@@ -19,7 +19,7 @@ class DslExpression(object):
 
 class Statement(DslExpression):
     def __init__(self, statement):
-        if isinstance(statement, types.StringType):
+        if isinstance(statement, YaqlExpression):
             key = None
             value = statement
         elif isinstance(statement, types.DictionaryType):
@@ -59,6 +59,9 @@ class Statement(DslExpression):
     def execute(self, context, object_store, murano_class):
         result = helpers.evaluate(self.expression, context)
 
+        if not self.assign_to:
+            return None
+
         container = context
         if self.assign_to_container is not None:
             container = self.assign_to_container.evaluate(context)
@@ -78,7 +81,7 @@ class Statement(DslExpression):
 
 
 def parse_expression(expr):
-    if isinstance(expr, types.StringType):
+    if isinstance(expr, YaqlExpression):
         return Statement(expr)
     elif isinstance(expr, types.DictionaryType):
         kwds = {}
@@ -86,11 +89,11 @@ def parse_expression(expr):
             key = str(key).strip()
             if not key:
                 raise SyntaxError()
-            if re.match(r'^$[.\w]+$', key):
+            if re.match(r'^\$[.\w]+$', key):
                 return Statement(expr)
             parts = key.split(' ', 1)
             kwds[parts[0]] = \
-                None if len(parts) == 1 else parts[1], value
+                (None if len(parts) == 1 else parts[1]), value
 
         for cls in _macros:
             try:

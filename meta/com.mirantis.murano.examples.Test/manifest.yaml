@@ -1,6 +1,7 @@
 Namespaces:
     =: com.mirantis.murano.examples
     std: com.mirantis.murano
+    sys: com.mirantis.murano.system
 Name: Test
 
 #Inherits:
@@ -17,6 +18,10 @@ Properties:
     Type: Test2
 
 Workflow:
+  __init__:
+    Body:
+      - $.debugPrint()
+
   method1:
       Arguments:
         - t:
@@ -25,7 +30,13 @@ Workflow:
             Type: Integer
             Default: 33
       Body:
-         - $.p1: $.pt.method1(1, 44)
+         - $data: new(sys:Resources).json('test.json').a
+         - $.debugPrint($data)
+         #- $z: new(Test2, p2 => 15)
+         #- Return: $z.method1(1, 2)
+         #- $.p1: $.pt.method1(1, 44)
+#         - $heat: new(sys:Heat, $q).createStack(name2 => xxx, yyy)
+#         - $heat: new(sys:Heat).createStack(name2 => zzz, zzz)
          - Return: $.p1
 #         - $b: $.pt.print()
 #         - $uu:

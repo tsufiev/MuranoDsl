@@ -54,7 +54,7 @@ class TypeScheme(object):
         return int(value)
 
     def _map_boolean(self, value):
-        if value == True \
+        if value is True \
             or isinstance(value, types.IntType) and value != 0 \
                 or isinstance(value, types.StringTypes) \
                 and value.lower() == 'true':
@@ -85,8 +85,8 @@ class TypeScheme(object):
             return obj
 
     def _map(self, value, typedef, object_store):
-        if value is None:
-            raise ValueError()
+        # if value is None:
+        #     raise ValueError()
         if isinstance(typedef, types.DictionaryType):
             return self._map_dict(value, typedef, object_store)
         if isinstance(typedef, types.ListType):

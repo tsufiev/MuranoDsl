@@ -12,7 +12,7 @@ class MuranoMethod(object):
         self._name = name
         self._namespace_resolver = namespace_resolver
 
-        if inspect.isfunction(payload):
+        if callable(payload):
             self._body = payload
             self._arguments_scheme = self._generate_arguments_scheme(payload)
         else:
@@ -57,6 +57,8 @@ class MuranoMethod(object):
     def _generate_arguments_scheme(self, func):
         func_info = inspect.getargspec(func)
         data = [(name, {'Type': 'Object'}) for name in func_info.args]
+        if inspect.ismethod(func):
+            data = data[1:]
         defaults = func_info.defaults or tuple()
         for i in xrange(len(defaults)):
             data[i + len(data) - len(defaults)][1]['Default'] = defaults[i]

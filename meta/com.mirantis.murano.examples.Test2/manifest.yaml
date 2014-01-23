@@ -17,7 +17,7 @@ Workflow:
             Type: Integer
             Default: 33
       Body:
-        - Return: $t + $z + $.debugPrint(2) + $.p2
+        - Return: $.p2 * 2
 #        - debugPrint: 999999
 #        - debugPrint: $t
 #        - debugPrint: [$t, $.p2]

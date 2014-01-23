@@ -13,7 +13,12 @@ class BreakException(Exception):
 
 class NoMethodFound(Exception):
     def __init__(self, name):
-        super(NoMethodFound, self).__init__('Method %s not found' % name)
+        super(NoMethodFound, self).__init__('Method %s is not found' % name)
+
+
+class NoClassFound(Exception):
+    def __init__(self, name):
+        super(NoClassFound, self).__init__('Class %s is not found' % name)
 
 
 class AmbiguousMethodName(Exception):

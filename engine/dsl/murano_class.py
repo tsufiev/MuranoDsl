@@ -21,6 +21,10 @@ class MuranoClass(object):
         return self._name
 
     @property
+    def namespace_resolver(self):
+        return self._namespace_resolver
+
+    @property
     def parents(self):
         return self._parents
 
@@ -73,5 +77,11 @@ class MuranoClass(object):
             if t.is_compatible(obj):
                 return True
         return False
+
+    def new(self, object_store, context, parameters=None, object_id=None):
+        obj = MuranoObject(self, object_store, object_id=object_id)
+        if parameters is not None:
+            obj.initialize(**parameters)
+        return obj
 
 

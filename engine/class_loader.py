@@ -22,6 +22,8 @@ class ClassLoader(dsl.MuranoClassLoader):
 
     def load_definition(self, name):
         path = os.path.join(self._base_path, name, 'manifest.yaml')
+        if not os.path.exists(path):
+            return None
         with open(path) as stream:
             return yaml.load(stream)
 
