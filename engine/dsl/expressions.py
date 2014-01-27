@@ -1,9 +1,7 @@
 import types
-import re
-from murano_object import MuranoObject
+from lhs_expression import LhsExpression
 import helpers
 from yaql_expression import YaqlExpression
-from yaql.context import Context
 
 _macros = []
 
@@ -30,27 +28,12 @@ class Statement(DslExpression):
         else:
             raise SyntaxError()
 
-        self._assign_to = None
-        self._assign_to_container = None
-        if key:
-            path = str(key).strip()
-            if not re.match(r'^\s*\$[.\w]+\s*$', path):
-                raise SyntaxError()
-            self._assign_to = path
-            parts = self._assign_to.rsplit('.', 1)
-            if len(parts) == 2:
-                self._assign_to = parts[1]
-                self._assign_to_container = YaqlExpression(parts[0])
-
+        self._destination = None if not key else LhsExpression(key)
         self._expression = value
 
     @property
-    def assign_to(self):
-        return self._assign_to
-
-    @property
-    def assign_to_container(self):
-        return self._assign_to_container
+    def destination(self):
+        return self._destination
 
     @property
     def expression(self):
@@ -58,24 +41,8 @@ class Statement(DslExpression):
 
     def execute(self, context, object_store, murano_class):
         result = helpers.evaluate(self.expression, context)
-
-        if not self.assign_to:
-            return None
-
-        container = context
-        if self.assign_to_container is not None:
-            container = self.assign_to_container.evaluate(context)
-        if isinstance(container, Context):
-            container.set_data(result, self.assign_to)
-        elif isinstance(container, MuranoObject):
-            container.set_property(self.assign_to, result,
-                                   object_store, murano_class)
-        elif isinstance(container, types.DictionaryType):
-            container[self.assign_to] = result
-        elif isinstance(container, types.ListType):
-            container[int(self.assign_to)] = result
-        else:
-            raise ValueError()
+        if self.destination:
+            self.destination.set(result, context, object_store, murano_class)
 
         return result
 
@@ -89,7 +56,7 @@ def parse_expression(expr):
             key = str(key).strip()
             if not key:
                 raise SyntaxError()
-            if re.match(r'^\$[.\w]+$', key):
+            if key.startswith('$'):
                 return Statement(expr)
             parts = key.split(' ', 1)
             kwds[parts[0]] = \
