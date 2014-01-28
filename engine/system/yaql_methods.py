@@ -4,6 +4,7 @@ import re
 import types
 from oslo.config.cfg import ConfigOpts, OptGroup
 from yaql.context import EvalArg
+from eventlet.greenpool import GreenPool
 
 
 def _transform_json(json, mappings):
@@ -111,6 +112,12 @@ def _join(separator, *args):
 def _split(value, separator):
     return value.split(separator)
 
+
+def _pselect(collection, composer):
+    gp = GreenPool()
+    return gp.imap(composer, collection())
+
+
 def register(context):
     context.register_function(
         lambda json, mappings: _transform_json(json(), mappings()), 'bind')
@@ -127,4 +134,5 @@ def register(context):
     context.register_function(_upper, 'upper')
     context.register_function(_join, 'join')
     context.register_function(_split, 'split')
+    context.register_function(_pselect, 'pselect')
 

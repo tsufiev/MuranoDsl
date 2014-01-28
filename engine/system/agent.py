@@ -14,7 +14,8 @@ class AgentException(Exception):
 @classname('com.mirantis.murano.system.Agent')
 class Agent(MuranoObject):
     def initialize(self, host, environment, resource_manager):
-        self._queue = ('e%s-h%s' % (environment.id(), host.id())).lower()
+        self._queue = ('e%s-h%s' % (
+            environment.object_id(), host.object_id())).lower()
         self._resource_manager = resource_manager
         self._listener = environment.agentListener
 

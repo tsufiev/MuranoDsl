@@ -1,3 +1,4 @@
+import inspect
 import types
 from lhs_expression import LhsExpression
 import helpers

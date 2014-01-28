@@ -24,7 +24,7 @@ from openstack.common import log as logging
 import config as cfg
 from dsl.executor import MuranoDslExecutor
 import class_loader
-
+import eventlet
 
 log = logging.getLogger(__name__)
 
@@ -78,8 +78,15 @@ class EngineService(service.Service):
                 eventlet.sleep(reconnect_delay)
                 reconnect_delay = min(reconnect_delay * 2, 60)
 
-    def debug_print(self, x, y=5):
-        print "It works!", x, y
+    def debug_print(self, msg):
+        print '>>', msg
+        eventlet.sleep(2)
+        print '<<', msg
+        return 14
+    def debug_print2(self, msg):
+        print '>>>', msg
+        eventlet.sleep(3)
+        print '<<<', msg
         return 14
 
     def test(self):
@@ -96,7 +103,7 @@ class EngineService(service.Service):
             '123': {'?': {'type': 'com.mirantis.murano.examples.Test'},
                      'p1': 88, 'pt': '345' },
             '345': {'?': {'type': 'com.mirantis.murano.examples.Test2'},
-                    'p2': 777}
+                    'p': 777}
         })
         # objects = object_store.load({
         #     '123': {'?': {'type': 'com.mirantis.murano.examples.Test'}},
@@ -111,8 +118,10 @@ class EngineService(service.Service):
 
         object_class = cl.get_class("com.mirantis.murano.Object")
         object_class.add_method('debugPrint', self.debug_print)
+        object_class.add_method('debugPrint2', self.debug_print2)
 #        print test_class.name
-        print "=", obj.type.invoke('method1', executor, obj, {'t': 17})
+        res = obj.type.invoke('method1', executor, obj, {'t': 17})
+        print "=", res
         print
         print '---------------------------------------------------------'
         print obj

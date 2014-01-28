@@ -1,10 +1,12 @@
+import collections
+import inspect
 import deep
 import re
 import types
 import murano_object
 from yaql_expression import YaqlExpression
 import yaql.expressions
-
+from eventlet.greenpool import GreenMap
 
 def serialize(value):
     if isinstance(value, types.DictionaryType):
@@ -28,16 +30,19 @@ def evaluate(value, context):
         return result
     elif isinstance(value, types.ListType):
         return [evaluate(t, context) for t in value]
-    elif isinstance(value, YaqlExpression):
-        return value.evaluate(context)
-    elif isinstance(value, yaql.expressions.Expression):
-        return value.evaluate(context)
+    elif isinstance(value, (YaqlExpression, yaql.expressions.Expression)):
+        return evaluate(value.evaluate(context), context)
     elif isinstance(value, types.TupleType):
         return tuple(evaluate(list(value), context))
     elif callable(value):
         return value()
+    elif isinstance(value, types.StringTypes):
+        return value
+    elif isinstance(value, collections.Iterable):
+        return list(value)
     else:
         return value
+
 
 def merge_lists(list1, list2):
     result = []
@@ -50,6 +55,7 @@ def merge_lists(list1, list2):
         if not exists:
             result.append(item)
     return result
+
 
 def merge_dicts(dict1, dict2, max_levels=0):
     result = {}
@@ -90,3 +96,7 @@ def get_type(context):
 
 def get_environment(context):
     return context.get_data('$?environment')
+
+
+def get_object_store(context):
+    return context.get_data('$?objectStore')

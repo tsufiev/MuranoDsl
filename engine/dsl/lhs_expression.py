@@ -10,7 +10,7 @@ class LhsExpression(object):
         expression = str(expression).strip()
         if not expression or expression == '$' or \
                 not expression.startswith('$'):
-                    raise SyntaxError()
+                    raise SyntaxError(expression)
 
         self._expression = yaql.parse(expression)
 

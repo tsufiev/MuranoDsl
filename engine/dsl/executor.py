@@ -1,5 +1,7 @@
 import functools
 import inspect
+import eventlet
+from eventlet.event import Event
 import yaql
 import yaql.exceptions
 import types
@@ -16,6 +18,8 @@ class MuranoDslExecutor(object):
         self._root_context = class_loader.create_root_context()
         self._root_context.set_data(self, '?executor')
         self._root_context.set_data(environment, '?environment')
+        self._root_context.set_data(self._object_store, '?objectStore')
+        self._locks = {}
 
         @ContextAware()
         def resolve(context, name, obj):
@@ -114,6 +118,24 @@ class MuranoDslExecutor(object):
         if not body:
             return None
 
+        method_id = id(body)
+        this_id = this.object_id
+
+        event = self._locks.get((method_id, this_id))
+        if event:
+            event.wait()
+
+        event = Event()
+        self._locks[(method_id, this_id)] = event
+        gt = eventlet.spawn(self._invoke_method_implementation_gt, body,
+                            this, context, params, method.murano_class)
+        result = gt.wait()
+        del self._locks[(method_id, this_id)]
+        event.send()
+        return result
+
+    def _invoke_method_implementation_gt(self, body, this, context,
+                                         params, murano_class):
         if callable(body):
             if '_context' in inspect.getargspec(body).args:
                 params['_context'] = context
@@ -122,7 +144,7 @@ class MuranoDslExecutor(object):
             else:
                 return body(**params)
         elif isinstance(body, expressions.DslExpression):
-            return self.execute(body, method.murano_class, this, params)
+            return self.execute(body, murano_class, this, params)
         else:
             raise ValueError()
 

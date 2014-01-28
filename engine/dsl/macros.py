@@ -1,18 +1,20 @@
+from yaql_expression import YaqlExpression
 import expressions
 import types
 import exceptions
 import helpers
+from eventlet.greenpool import GreenPool
 
 
 class CodeBlock(expressions.DslExpression):
     def __init__(self, body):
         if not isinstance(body, types.ListType):
             body = [body]
-        self._block = map(expressions.parse_expression, body)
+        self.code_block = map(expressions.parse_expression, body)
 
     def execute(self, context, object_store, murano_class):
         try:
-            for expr in self._block:
+            for expr in self.code_block:
                 expr.execute(context, object_store, murano_class)
         except exceptions.BreakException:
             return
@@ -51,6 +53,30 @@ class BreakMacro(expressions.DslExpression):
         raise exceptions.BreakException()
 
 
+class ParallelMacro(CodeBlock):
+    def __init__(self, Parallel, Limit=(None, None)):
+        e, body = Parallel
+        if e:
+            raise SyntaxError()
+        super(ParallelMacro, self).__init__(body)
+        e, limit = Limit
+        if e:
+            raise SyntaxError()
+        if limit:
+            self._limit = YaqlExpression(limit)
+        else:
+            self._limit = len(self.code_block)
+
+    def execute(self, context, object_store, murano_class):
+        if not self.code_block:
+            return
+        gp = GreenPool(helpers.evaluate(self._limit, context))
+        for expr in self.code_block:
+            gp.spawn_n(expr.execute, context, object_store, murano_class)
+        gp.waitall()
+
+
+
 def do_macro(Do):
     e, body = Do
     if e:
@@ -65,8 +91,8 @@ def func_macro(Func):
     return MethodBlock(body)
 
 
-print "$$$$$$$$$$$$$$$$$$$$$$$$"
 expressions.register_macro(do_macro)
 expressions.register_macro(func_macro)
 expressions.register_macro(ReturnMacro)
 expressions.register_macro(BreakMacro)
+expressions.register_macro(ParallelMacro)

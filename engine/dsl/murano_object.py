@@ -33,6 +33,9 @@ class MuranoObject(object):
     def type(self):
         return self._type
 
+    def __getattr__(self, item):
+        return self.get_property(item)
+
     def get_property(self, item, caller_class=None):
         #print 'caller_class', caller_class.name
         if item in self._properties and \
@@ -64,7 +67,7 @@ class MuranoObject(object):
                     return
                 except AttributeError:
                     continue
-            raise AttributeError()
+            raise AttributeError(key)
 
     def _is_accessible(self, property_name, caller_class):
         spec = self._type.get_property(property_name)
