@@ -1,6 +1,8 @@
+from muranocommon.messaging import MqClient
 import inspect
 from engine.dsl import classname
 from engine.system import heat_stack, resource_manager
+from engine import config as cfg
 
 
 def _auto_register(class_loader):
@@ -24,3 +26,16 @@ def register(class_loader, path):
                 path, _context, _class)
 
     class_loader.import_class(ResolurceManagerWrapper)
+
+def create_rmq_client():
+    rabbitmq = cfg.CONF.rabbitmq
+    connection_params = {
+        'login': rabbitmq.login,
+        'password': rabbitmq.password,
+        'host': rabbitmq.host,
+        'port': rabbitmq.port,
+        'virtual_host': rabbitmq.virtual_host,
+        'ssl': rabbitmq.ssl,
+        'ca_certs': rabbitmq.ca_certs.strip() or None
+    }
+    return MqClient(**connection_params)

@@ -7,3 +7,4 @@ yaql
 PyYAML
 deep
 eventlet
+python-heatclient>=0.2.3
