@@ -5,3 +5,5 @@ babel
 iso8601
 yaql
 PyYAML
+deep
+eventlet

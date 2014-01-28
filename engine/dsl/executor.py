@@ -10,11 +10,12 @@ from engine.dsl import helpers, MuranoObject, ObjectStore
 
 
 class MuranoDslExecutor(object):
-    def __init__(self, class_loader):
+    def __init__(self, class_loader, environment=None):
         self._class_loader = class_loader
         self._object_store = ObjectStore(class_loader)
         self._root_context = class_loader.create_root_context()
         self._root_context.set_data(self, '?executor')
+        self._root_context.set_data(environment, '?environment')
 
         @ContextAware()
         def resolve(context, name, obj):
@@ -44,6 +45,13 @@ class MuranoDslExecutor(object):
                 self._object_store, context, parameters=parameters)
 
         self._root_context.register_function(new, 'new')
+
+        @EvalArg('value', MuranoObject)
+        def _id(value):
+            return value.object_id
+
+        self._root_context.register_function(_id, 'id')
+
 
 
     def _resolve(self, context, name, obj):
@@ -156,6 +164,7 @@ class MuranoDslExecutor(object):
             parent_context=self._root_context,
             murano_class=murano_class)
         new_context.set_data(this)
+        new_context.set_data(this, '$this')
         new_context.set_data(murano_class, '?type')
 
         @EvalArg('this', arg_type=MuranoObject)

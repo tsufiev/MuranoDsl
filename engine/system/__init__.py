@@ -1,6 +1,6 @@
 import inspect
 from engine.dsl import classname
-from engine.system import heat, resource_manager
+from engine.system import heat_stack, resource_manager
 
 
 def _auto_register(class_loader):

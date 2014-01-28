@@ -18,6 +18,7 @@ from muranocommon.messaging import MqClient
 
 from engine import system
 from engine.dsl import ObjectStore
+from engine.enviroment import Environment
 from openstack.common import service
 from openstack.common import log as logging
 import config as cfg
@@ -83,10 +84,14 @@ class EngineService(service.Service):
 
     def test(self):
 
+        environment = Environment()
+        environment.tenant_id = ''
+        environment.token = ''
+
         base_path = './meta'
         cl = class_loader.ClassLoader(base_path)
         system.register(cl, base_path)
-        executor = MuranoDslExecutor(cl)
+        executor = MuranoDslExecutor(cl, environment)
         objects = executor.load({
             '123': {'?': {'type': 'com.mirantis.murano.examples.Test'},
                      'p1': 88, 'pt': '345' },
