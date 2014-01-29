@@ -32,7 +32,9 @@ class LhsExpression(object):
         else:
             raise ValueError()
 
-    def set(self, value, context, object_store, murano_class):
+    def set(self, value, context, object_store, murano_class=None):
+        if murano_class is None:
+            murano_class = context.get_data().type
         if isinstance(self._expression, (yaql.expressions.Att,
                                          yaql.expressions.Filter)):
             container = self._expression.object.evaluate(
