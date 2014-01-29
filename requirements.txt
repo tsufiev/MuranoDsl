@@ -7,4 +7,6 @@ yaql
 PyYAML
 deep
 eventlet
+kombu>=2.4.8
 python-heatclient>=0.2.3
+python-keystoneclient>=0.3.2
