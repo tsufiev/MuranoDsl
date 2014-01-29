@@ -18,5 +18,7 @@ Workflow:
       - environment:
           Type: std:Environment
     Body:
-      - std:Deploy $.host:
-          environment: $environment
+      - OnChanged: $.host
+        Do:
+          - std:Deploy $.host:
+              environment: $environment

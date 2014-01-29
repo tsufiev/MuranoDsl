@@ -30,14 +30,18 @@ Workflow:
             Type: Integer
             Default: 33
       Body:
-         - $data: new(sys:Resources).json('test.json').a
-         - $.debugPrint($data)
+         - OnChanged:
+             key1: $.pt
+           Do:
+             - $data: new(sys:Resources).json('test.json').a
+             - $.debugPrint($data)
+             - $.pt.method1(10)
          #- $z: new(Test2, p2 => 15)
          #- Return: $z.method1(1, 2)
          #- $.p1: $.pt.method1(1, 44)
 #         - $heat: new(sys:Heat, $q).createStack(name2 => xxx, yyy)
 #         - $heat: new(sys:Heat).createStack(name2 => zzz, zzz)
-         - Return: $.p1
+             - Return: $.p1
 #         - $b: $.pt.print()
 #         - $uu:
 #            x: 2 + 2 * 2

@@ -76,6 +76,55 @@ class ParallelMacro(CodeBlock):
         gp.waitall()
 
 
+class OnChangedMacro(CodeBlock):
+    def __init__(self, OnChanged, Do):
+        _, parameters = OnChanged
+        _, body = Do
+        if not isinstance(parameters, types.DictType) or not body:
+            raise SyntaxError()
+
+        super(OnChangedMacro, self).__init__(body)
+        self._parameters = parameters
+
+    @property
+    def parameters(self):
+        return self._parameters
+
+    def _parameters_changed(self, context, object_store):
+        changed = False
+        obj = context.get_data()
+        for p_name, p_value in self.parameters.iteritems():
+            if obj.diff(p_name, p_value, context=context,
+                        object_store=object_store):
+                changed = True
+                break
+
+        return changed
+
+    def _commit_history(self, context):
+        obj = context.get_data()
+        for p_name, p_value in self.parameters.iteritems():
+            obj.set_history(p_name, p_value, context)
+
+    def execute(self, context, object_store, murano_class):
+        if self._parameters_changed(context, object_store):
+            print 'One of the {parameters} parameters has changed, running ' \
+                  'the main code body'.format(parameters=self.parameters)
+            try:
+                super(OnChangedMacro, self).execute(
+                    context, object_store, murano_class)
+            # update changed variables only if no errors occurred
+            except exceptions.BreakException:
+                self._commit_history(context)
+            except exceptions.ReturnException:
+                self._commit_history(context)
+                raise
+            else:
+                self._commit_history(context)
+        else:
+            print 'None of the parameters has changed, skipping main code ' \
+                  'body'
+
 
 def do_macro(Do):
     e, body = Do
@@ -96,3 +145,4 @@ expressions.register_macro(func_macro)
 expressions.register_macro(ReturnMacro)
 expressions.register_macro(BreakMacro)
 expressions.register_macro(ParallelMacro)
+expressions.register_macro(OnChangedMacro)

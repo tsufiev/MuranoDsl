@@ -25,6 +25,8 @@ import config as cfg
 from dsl.executor import MuranoDslExecutor
 import class_loader
 import eventlet
+from consts import PARAMETERS_HISTORY_KEY
+
 
 log = logging.getLogger(__name__)
 
@@ -100,9 +102,13 @@ class EngineService(service.Service):
         system.register(cl, base_path)
         executor = MuranoDslExecutor(cl, environment)
         objects = executor.load({
-            '123': {'?': {'type': 'com.mirantis.murano.examples.Test'},
-                     'p1': 88, 'pt': '345' },
-            '345': {'?': {'type': 'com.mirantis.murano.examples.Test2'},
+            '123': {'?': {'type': 'com.mirantis.murano.examples.Test',
+                          PARAMETERS_HISTORY_KEY: {'key1?obj_id': '345'}
+            },
+                     'p1': 88, 'pt': '345'},
+            '345': {'?': {'type': 'com.mirantis.murano.examples.Test2',
+                          PARAMETERS_HISTORY_KEY: {'key2': 777}
+            },
                     'p': 777}
         })
         # objects = object_store.load({

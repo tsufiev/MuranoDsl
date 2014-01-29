@@ -16,11 +16,7 @@ Workflow:
   std:Deploy:
     Access: Public
     Body:
-      - std:Deploy $.applications:
-          environment: $
-
-
-
-
-
-
+      - OnChanged: $.applications
+        Do:
+          - std:Deploy $.applications:
+              environment: $

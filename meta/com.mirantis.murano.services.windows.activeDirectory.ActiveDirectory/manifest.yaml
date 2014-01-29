@@ -25,9 +25,16 @@ Workflow:
       - environment:
           Type: std:Environment
     Body:
-      - std:Deploy $.primaryController:
-          environment: $environment
-          domain: $
-      - std:Deploy $.secondaryControllers:
-          environment: $environment
-          domain: $
+      - OnChanged:
+          domainName: $.name
+        Do:
+          - OnChanged: $.primaryController
+            Do:
+              - std:Deploy $.primaryController:
+                  environment: $environment
+                  domain: $
+          - OnChanged: $.secondaryControllers
+            Do:
+              - std:Deploy $.secondaryControllers:
+                  environment: $environment
+                  domain: $

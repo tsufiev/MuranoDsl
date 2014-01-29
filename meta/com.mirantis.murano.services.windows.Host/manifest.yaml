@@ -33,11 +33,13 @@ Workflow:
       - std:Deploy super():
           environment: $environment
       - $template: $.resources.json('SetPassword.template')
-      - $ep:
-          $template.with(adminAccountName => $.adminAccountName).
-            with(adminPassword => $.adminPassword)
-      - SendCommand:
-          executionPlan: $ep
+      - OnChanged: [$.adminAccountName, $.adminPassword]
+        Do:
+          - $ep:
+              $template.with(adminAccountName => $.adminAccountName).
+                with(adminPassword => $.adminPassword)
+          - SendCommand:
+              executionPlan: $ep
 
   JoinDomain:
     Access: Public
@@ -53,9 +55,3 @@ Workflow:
 
       - SendCommand:
           executionPlan: $ep
-
-
-
-
-
-

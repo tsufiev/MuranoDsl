@@ -4,7 +4,7 @@ Namespaces:
 Name: Test2
 
 Properties:
-  p2:
+  p:
     Type: Integer
     Default: 11
 
@@ -17,7 +17,10 @@ Workflow:
             Type: Integer
             Default: 33
       Body:
-        - Return: $.p2 * 2
+        - OnChanged:
+            key2: $.p
+          Do:
+            - Return: $.p * 2
 #        - debugPrint: 999999
 #        - debugPrint: $t
 #        - debugPrint: [$t, $.p2]

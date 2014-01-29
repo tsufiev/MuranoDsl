@@ -26,16 +26,15 @@ Workflow:
       - environment:
           Type: std:Environment
     Body:
-      - $template:
-          Resources:
-            $.name:
-              Type: 'AWS::EC2::Instance'
-              Properties:
-                InstanceType: $.flavor
-                ImageId: $.image
-      - UpdateStack $.heat:
-          template: $template
-          environment: $.environment
-
-
-
+      - OnChanged: [$.name, $.flavor, $.image]
+        Do:
+          - $template:
+              Resources:
+                $.name:
+                  Type: 'AWS::EC2::Instance'
+                  Properties:
+                    InstanceType: $.flavor
+                    ImageId: $.image
+          - UpdateStack $.heat:
+              template: $template
+              environment: $.environment

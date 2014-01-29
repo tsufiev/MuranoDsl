@@ -26,13 +26,9 @@ Workflow:
     Body:
       - std:Deploy super():
           environment: $environment
-      - JoinDomain:
-          domain: $.domain
-
-
-
-
-
-
-
-
+      - OnChanged: $.domain
+        Do:
+          - std:Deploy $.domain:
+              environment: $environment
+          - JoinDomain:
+              domain: $.domain

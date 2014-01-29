@@ -4,7 +4,7 @@ Namespaces:
     sys: com.mirantis.murano.system
     win: com.mirantis.murano.services.windows
 
-Name: PrimaryController
+Name: SecondaryController
 
 Inherits: Controller
 
@@ -25,8 +25,7 @@ Workflow:
 
       - $template: $.resources.json('CreateSecondaryDC.template')
       - $ep:
-          $template.with(domain => $domain.name).
-            with(recoveryPassword => $.recoveryPassword)
+          $template.with(domain => $domain.name)
 
       - SendCommand $.host:
           executionPlan: $ep
